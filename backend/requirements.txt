@@ -3,3 +3,10 @@ uvicorn[standard]
 httpx
 pydantic>=2
 python-dotenv
+
+# RAG dependencies
+pypdf2
+chromadb
+sentence-transformers
+numpy
+watchdog

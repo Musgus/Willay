@@ -4,10 +4,14 @@ import time
 from typing import AsyncGenerator, Dict, List, Optional
 
 import httpx
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
+from pathlib import Path
+import shutil
+
+from rag_engine import RAGEngine
 
 OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 SYSTEM_PROMPT = "Responde en frases cortas."
@@ -16,7 +20,15 @@ MAX_RESPONSE_CHARS = 500
 MAX_SESSION_MESSAGES = 20
 HTTP_TIMEOUT = httpx.Timeout(60.0, connect=10.0)
 
-app = FastAPI(title="Ollama Chatbot", version="1.0.0")
+app = FastAPI(title="Willay Chatbot", version="2.0.0")
+
+# Inicializar motor RAG
+rag_engine = RAGEngine(
+    pdf_dir="rag",
+    cache_dir="backend/rag_engine/cache",
+    vector_store_dir="backend/rag_engine/vector_store",
+    embedding_model="nomic-embed-text"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,6 +51,8 @@ class ChatRequest(BaseModel):
     prompt: Optional[str] = None
     client_id: Optional[str] = Field(default=None, alias="clientId")
     reset: bool = False
+    use_rag: bool = Field(default=False, alias="useRag")
+    rag_n_results: int = Field(default=5, ge=1, le=10, alias="ragNResults")
 
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
@@ -121,6 +135,34 @@ async def _build_messages(payload: ChatRequest) -> List[ChatMessage]:
 
     merged = list(session_messages or []) + incoming
     merged = _ensure_system_message(merged)
+    
+    # Si RAG está habilitado, enriquecer el system prompt con contexto
+    if payload.use_rag and rag_engine.is_indexed():
+        # Obtener el último mensaje del usuario
+        last_user_msg = next((m.content for m in reversed(merged) if m.role == "user"), "")
+        
+        if last_user_msg:
+            # Buscar contexto relevante
+            context_chunks = await rag_engine.search_context(
+                last_user_msg,
+                n_results=payload.rag_n_results
+            )
+            
+            if context_chunks:
+                # Enriquecer el system prompt con contexto
+                original_system = merged[0].content if merged and merged[0].role == "system" else SYSTEM_PROMPT
+                enhanced_system = rag_engine.build_rag_prompt(
+                    last_user_msg,
+                    context_chunks,
+                    original_system
+                )
+                
+                # Reemplazar el system message
+                if merged and merged[0].role == "system":
+                    merged[0] = ChatMessage(role="system", content=enhanced_system)
+                else:
+                    merged.insert(0, ChatMessage(role="system", content=enhanced_system))
+    
     return merged[-MAX_SESSION_MESSAGES:]
 
 
@@ -269,3 +311,149 @@ async def timeout_middleware(request: Request, call_next):
         return await asyncio.wait_for(call_next(request), timeout=65.0)
     except asyncio.TimeoutError as error:
         raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="Tiempo de espera superado") from error
+
+
+# ==================== ENDPOINTS RAG ====================
+
+@app.post("/rag/index")
+async def rag_index_documents(force: bool = False):
+    """
+    Indexa todos los PDFs en el directorio rag/
+    
+    Query params:
+        force: Si True, fuerza la re-indexación completa
+    """
+    try:
+        stats = await rag_engine.index_documents(force=force)
+        return JSONResponse(content=stats)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error indexando documentos: {str(e)}"
+        )
+
+
+@app.get("/rag/stats")
+async def rag_get_stats():
+    """Retorna estadísticas del sistema RAG"""
+    try:
+        stats = rag_engine.get_stats()
+        stats["is_indexed"] = rag_engine.is_indexed()
+        stats["indexed_files"] = rag_engine.get_indexed_files()
+        return JSONResponse(content=stats)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo estadísticas: {str(e)}"
+        )
+
+
+@app.post("/rag/upload")
+async def rag_upload_pdf(file: UploadFile = File(...)):
+    """
+    Sube un PDF al directorio rag/
+    
+    Luego debes llamar a /rag/index para indexarlo
+    """
+    try:
+        # Verificar que sea PDF
+        if not file.filename.endswith(".pdf"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Solo se permiten archivos PDF"
+            )
+        
+        # Guardar archivo
+        pdf_path = Path("rag") / file.filename
+        pdf_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(pdf_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        return JSONResponse(content={
+            "status": "success",
+            "filename": file.filename,
+            "message": "PDF subido correctamente. Ejecuta /rag/index para indexarlo."
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error subiendo PDF: {str(e)}"
+        )
+
+
+@app.delete("/rag/document/{filename}")
+async def rag_delete_document(filename: str):
+    """Elimina un documento del índice y del directorio"""
+    try:
+        # Eliminar del índice
+        rag_engine.remove_document(filename)
+        
+        # Eliminar archivo físico
+        pdf_path = Path("rag") / filename
+        if pdf_path.exists():
+            pdf_path.unlink()
+        
+        # Eliminar caché
+        cache_path = Path("backend/rag_engine/cache") / f"{Path(filename).stem}.txt"
+        if cache_path.exists():
+            cache_path.unlink()
+        
+        return JSONResponse(content={
+            "status": "success",
+            "message": f"Documento {filename} eliminado"
+        })
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error eliminando documento: {str(e)}"
+        )
+
+
+@app.delete("/rag/clear")
+async def rag_clear_index():
+    """Limpia completamente el índice RAG (no elimina PDFs)"""
+    try:
+        rag_engine.clear_index()
+        return JSONResponse(content={
+            "status": "success",
+            "message": "Índice RAG limpiado"
+        })
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error limpiando índice: {str(e)}"
+        )
+
+
+@app.post("/rag/search")
+async def rag_search_context(query: str, n_results: int = 5):
+    """
+    Busca contexto relevante en los documentos indexados
+    
+    Query params:
+        query: Texto de búsqueda
+        n_results: Cantidad de resultados (default: 5)
+    """
+    try:
+        if not rag_engine.is_indexed():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No hay documentos indexados"
+            )
+        
+        context_chunks = await rag_engine.search_context(query, n_results=n_results)
+        
+        return JSONResponse(content={
+            "query": query,
+            "results": context_chunks
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error en búsqueda: {str(e)}"
+        )

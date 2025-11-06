@@ -59,6 +59,13 @@
           <label for="temperatureRange">Temperatura <span id="temperatureValue">0.3</span></label>
           <input type="range" id="temperatureRange" min="0" max="1.5" value="0.3" step="0.1" class="control-input">
         </div>
+        <div class="control-group">
+          <label class="toggle-label">
+            <input type="checkbox" id="ragToggle" class="toggle-input">
+            <span class="toggle-text">📚 Usar RAG</span>
+          </label>
+          <span id="ragStatus" class="rag-status"></span>
+        </div>
         <button id="newChatBtn" class="secondary-btn" type="button">+ Nuevo chat</button>
       </section>
 
@@ -128,21 +135,43 @@
         </div>
 
         <div id="ragTab" class="tab-content hidden">
-          <h3>Configuración RAG (Próximamente)</h3>
-          <p>Aquí podrás cargar tu "rack de libros" para entrenar a Willay con documentos específicos.</p>
-          <div class="rag-config">
-            <label>
-              <input type="checkbox" id="ragEnabled" disabled>
-              Habilitar RAG (Retrieval-Augmented Generation)
-            </label>
-            <div class="file-upload">
-              <button class="secondary-btn" disabled>📁 Cargar documentos PDF</button>
-              <button class="secondary-btn" disabled>📄 Cargar archivos TXT</button>
-              <button class="secondary-btn" disabled>🌐 Indexar URLs</button>
+          <h3>📚 Sistema RAG (Retrieval-Augmented Generation)</h3>
+          
+          <div class="rag-stats-card">
+            <h4>Estado del índice</h4>
+            <div class="rag-stats-grid">
+              <div class="rag-stat">
+                <span class="rag-stat-label">Documentos:</span>
+                <span id="ragTotalFiles" class="rag-stat-value">0</span>
+              </div>
+              <div class="rag-stat">
+                <span class="rag-stat-label">Chunks:</span>
+                <span id="ragTotalChunks" class="rag-stat-value">0</span>
+              </div>
             </div>
-            <p class="info-text">
-              <strong>Próxima versión:</strong> Podrás cargar libros, PDFs y documentos para que Willay los use como contexto en sus respuestas.
-            </p>
+          </div>
+
+          <div class="rag-config">
+            <h4>Gestión de documentos</h4>
+            
+            <div class="rag-actions">
+              <button id="ragUploadBtn" class="secondary-btn">📁 Subir PDF</button>
+              <input type="file" id="ragFileInput" accept=".pdf" style="display: none;">
+              <button id="ragIndexBtn" class="secondary-btn">� Indexar documentos</button>
+              <button id="ragClearBtn" class="danger-btn">🗑️ Limpiar índice</button>
+            </div>
+
+            <div id="ragFilesList" class="rag-files-list">
+              <p class="loading-text">Cargando...</p>
+            </div>
+
+            <div class="info-text">
+              <strong>Cómo funciona RAG:</strong><br>
+              1. Coloca tus PDFs en la carpeta <code>rag/</code><br>
+              2. Haz clic en "Indexar documentos" para procesar<br>
+              3. Activa el toggle "Usar RAG" en el chat<br>
+              4. Willay usará los documentos para responder tus preguntas
+            </div>
           </div>
         </div>
       </div>

@@ -52,3 +52,16 @@ $RECYCLE.BIN/
 *.tmp
 *.bak
 *.cache
+
+# RAG files
+rag/*.pdf
+rag/*.txt
+backend/rag/*.pdf
+backend/rag/*.txt
+backend/rag_engine/vector_store/
+backend/rag_engine/cache/
+backend/backend/
+*.db
+*.sqlite3
+*.faiss
+*.pkl

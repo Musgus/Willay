@@ -100,11 +100,17 @@ Willay/
 ├── index.html          # Interfaz principal del chatbot
 ├── style.css           # Estilos responsive con sidebar
 ├── script.js           # Lógica frontend: streaming, historial, admin
+├── install.sh          # Instalador automático para Ubuntu Server
+├── UBUNTU_DEPLOYMENT.md # Guía completa de despliegue en Ubuntu
 ├── backend/
 │   ├── app.py          # FastAPI con streaming y sesiones
 │   ├── requirements.txt
 │   ├── run.bat         # Script de inicio (Windows)
-│   └── run.ps1         # Script de inicio (PowerShell)
+│   ├── run.ps1         # Script de inicio (PowerShell)
+│   ├── run.sh          # Script de inicio (Ubuntu/Linux)
+│   ├── willay-backend.service  # Archivo systemd para Ubuntu
+│   ├── rag_cli.py      # CLI para gestión RAG
+│   └── rag_engine/     # Motor RAG completo
 └── README.md
 ```
 
@@ -151,12 +157,62 @@ Edita `index.html`, línea 44:
 
 ---
 
-## 🔮 Próximas Características (RAG)
+## � Sistema RAG (¡Disponible Ahora!)
 
-- 📚 **RAG (Retrieval-Augmented Generation)**: Carga PDFs, TXT y documentos para entrenar a Willay con tu propio "rack de libros"
-- 🔍 **Búsqueda vectorial**: Embeddings con ChromaDB o FAISS
-- 📊 **Indexación de URLs**: Scraping y entrenamiento desde sitios web
-- 🎓 **Modos de entrenamiento**: Contexto específico por materia
+**RAG (Retrieval-Augmented Generation)** ya está implementado y funcional. Características:
+
+- ✅ **Carga de PDFs**: Sube documentos y Willay los usa como fuente de conocimiento
+- ✅ **Búsqueda vectorial**: Embeddings locales con ChromaDB + Ollama
+- ✅ **Indexación automática**: Procesa PDFs, extrae texto, genera embeddings
+- ✅ **Citación de fuentes**: Willay menciona archivo y página de donde obtiene información
+- ✅ **Panel de gestión**: Interfaz web para subir, indexar y eliminar documentos
+- ✅ **CLI incluido**: Script para indexar desde terminal
+- ✅ **100% local**: Todo el procesamiento en tu PC, sin APIs externas
+
+### 🚀 Configuración RAG
+
+**1. Instalar modelo de embeddings:**
+```cmd
+ollama pull nomic-embed-text
+```
+
+**2. Reinstalar dependencias con soporte RAG:**
+```cmd
+cd backend
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+**3. Colocar PDFs en la carpeta `rag/`**
+
+**4. Indexar documentos:**
+```cmd
+cd backend
+python rag_cli.py index
+```
+
+**5. En el frontend, activar el toggle "📚 Usar RAG"**
+
+📖 **Guía completa**: Ver [SETUP_RAG.md](SETUP_RAG.md) para instrucciones detalladas.
+
+### Comandos RAG disponibles
+
+```cmd
+# Indexar documentos
+python backend/rag_cli.py index
+
+# Ver estadísticas
+python backend/rag_cli.py stats
+
+# Listar archivos indexados
+python backend/rag_cli.py list
+
+# Limpiar índice
+python backend/rag_cli.py clear
+
+# Modo observador (auto-reindex)
+python backend/rag_cli.py watch
+```
 
 ---
 
@@ -184,7 +240,54 @@ Luego abre `http://localhost:5500`
 
 ---
 
-## 📄 Licencia
+## � Despliegue en Ubuntu Server
+
+Willay ahora soporta despliegue completo en Ubuntu Server con instalación automática.
+
+### Instalación Rápida en Ubuntu
+
+```bash
+# Clonar repositorio
+git clone https://github.com/Musgus/Willay.git
+cd Willay
+
+# Dar permisos de ejecución
+chmod +x install.sh
+
+# Ejecutar instalador (instala Ollama, Nginx, crea servicios systemd)
+sudo ./install.sh
+```
+
+El instalador automáticamente:
+- ✅ Instala Python, Nginx y dependencias
+- ✅ Instala y configura Ollama
+- ✅ Descarga modelos (llama3.2, nomic-embed-text)
+- ✅ Crea servicio systemd para el backend
+- ✅ Configura Nginx como reverse proxy
+- ✅ Inicia todos los servicios
+
+Después de la instalación:
+- Frontend: `http://TU_IP_SERVIDOR`
+- API: `http://TU_IP_SERVIDOR:8000`
+
+### Gestión del Servicio
+
+```bash
+# Ver logs en tiempo real
+sudo journalctl -u willay-backend -f
+
+# Reiniciar servicio
+sudo systemctl restart willay-backend
+
+# Estado
+sudo systemctl status willay-backend
+```
+
+📖 **Guía completa**: Ver [UBUNTU_DEPLOYMENT.md](UBUNTU_DEPLOYMENT.md) para instrucciones detalladas, configuración avanzada, HTTPS, monitoreo y troubleshooting.
+
+---
+
+## �📄 Licencia
 
 Este proyecto está bajo la licencia MIT. Consulta el archivo `LICENSE` para más detalles.
 
@@ -212,8 +315,9 @@ GitHub: [@Musgus](https://github.com/Musgus)
 ## 📝 Notas
 
 - Este proyecto NO envía datos a servicios externos; todo se ejecuta localmente.
-- Compatible únicamente con Windows (por ahora).
-- Requiere ~4GB RAM mínimo para modelos llama3.2.
+- Compatible con **Windows** (scripts .bat/.ps1) y **Ubuntu Server** (scripts .sh + systemd).
+- Requiere ~8GB RAM para despliegue en servidor con Ollama.
+- Para desarrollo local Windows, 4GB RAM es suficiente.
 
 ---
 
