@@ -44,6 +44,21 @@ if [ $? -ne 0 ]; then
 fi
 
 echo ""
+
+# Auto-indexar PDFs si existen
+PDF_COUNT=$(find rag/ -maxdepth 1 -name "*.pdf" 2>/dev/null | wc -l)
+if [ $PDF_COUNT -gt 0 ]; then
+    echo "📚 Detectados $PDF_COUNT PDFs en rag/"
+    echo "Indexando automáticamente..."
+    python rag_cli.py index
+    if [ $? -eq 0 ]; then
+        echo "✓ PDFs indexados correctamente"
+    else
+        echo "⚠ Advertencia: No se pudieron indexar algunos PDFs"
+    fi
+    echo ""
+fi
+
 echo "================================="
 echo "   Backend iniciado"
 echo "================================="

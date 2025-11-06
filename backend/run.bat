@@ -14,6 +14,20 @@ call "%VENV_DIR%\Scripts\activate.bat"
 pip install --upgrade pip
 pip install -r "%~dp0requirements.txt"
 
+echo.
+echo Verificando PDFs en carpeta rag/...
+dir /b "%~dp0rag\*.pdf" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo PDFs detectados. Indexando automaticamente...
+    python "%~dp0rag_cli.py" index
+    if %errorlevel% equ 0 (
+        echo PDFs indexados correctamente
+    ) else (
+        echo Advertencia: No se pudieron indexar algunos PDFs
+    )
+    echo.
+)
+
 pushd "%~dp0"
 uvicorn app:app --host 127.0.0.1 --port 8000
 popd
