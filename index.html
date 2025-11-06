@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Willay - Asistente Académico</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar: Historial de chats -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <h2>📚 Willay</h2>
+        <button id="toggleSidebar" class="icon-btn" title="Ocultar sidebar">☰</button>
+      </div>
+      
+      <div class="prompts-section">
+        <h3>Prompts Académicos</h3>
+        <div class="prompt-list">
+          <button class="prompt-btn" data-prompt="ayuda-matematicas">📐 Matemáticas</button>
+          <button class="prompt-btn" data-prompt="ayuda-fisica">⚛️ Física</button>
+          <button class="prompt-btn" data-prompt="ayuda-programacion">💻 Programación</button>
+          <button class="prompt-btn" data-prompt="ayuda-historia">📜 Historia</button>
+          <button class="prompt-btn" data-prompt="ayuda-literatura">📖 Literatura</button>
+          <button class="prompt-btn" data-prompt="ayuda-quimica">🧪 Química</button>
+        </div>
+      </div>
+
+      <div class="history-section">
+        <h3>Historial</h3>
+        <div id="chatHistory" class="chat-history"></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button id="adminBtn" class="admin-btn" title="Panel de administrador">⚙️ Admin</button>
+      </div>
+    </aside>
+
+    <!-- Main chat area -->
+    <main class="app-main">
+      <header class="chat-header">
+        <button id="showSidebar" class="icon-btn hidden" title="Mostrar sidebar">☰</button>
+        <h1>Willay - Asistente Académico IA</h1>
+        <span id="sessionTitle" class="session-title">Nueva sesión</span>
+      </header>
+
+      <section class="toolbar">
+        <div class="control-group">
+          <label for="modelSelect">Modelo</label>
+          <select id="modelSelect" class="control-input">
+            <option value="llama3.2" selected>llama3.2</option>
+            <option value="llama3">llama3</option>
+            <option value="llama2">llama2</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="temperatureRange">Temperatura <span id="temperatureValue">0.3</span></label>
+          <input type="range" id="temperatureRange" min="0" max="1.5" value="0.3" step="0.1" class="control-input">
+        </div>
+        <button id="newChatBtn" class="secondary-btn" type="button">+ Nuevo chat</button>
+      </section>
+
+      <section id="messages" class="messages" aria-live="polite">
+        <div class="welcome-message">
+          <h2>¡Hola! Soy Willay 👋</h2>
+          <p>Tu asistente académico con inteligencia artificial. Puedo ayudarte con:</p>
+          <ul>
+            <li>Resolver problemas de matemáticas y física</li>
+            <li>Explicar conceptos de programación</li>
+            <li>Analizar textos históricos y literarios</li>
+            <li>Responder preguntas sobre química y ciencias</li>
+          </ul>
+          <p><strong>Selecciona un prompt académico</strong> en el menú lateral o escribe tu pregunta.</p>
+        </div>
+      </section>
+
+      <form id="chatForm" class="composer" autocomplete="off">
+        <input id="messageInput" name="message" type="text" placeholder="Escribe tu pregunta académica..." aria-label="Mensaje" required>
+        <button id="sendBtn" type="submit">Enviar</button>
+      </form>
+      <p id="statusText" class="status" role="status" aria-live="polite"></p>
+    </main>
+  </div>
+
+  <!-- Modal de administrador -->
+  <div id="adminModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⚙️ Panel de Administrador</h2>
+        <button id="closeAdmin" class="close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="admin-tabs">
+          <button class="tab-btn active" data-tab="logs">📋 Logs</button>
+          <button class="tab-btn" data-tab="stats">📊 Estadísticas</button>
+          <button class="tab-btn" data-tab="rag">📚 RAG Config</button>
+        </div>
+
+        <div id="logsTab" class="tab-content active">
+          <div class="logs-controls">
+            <button id="clearLogs" class="danger-btn">Limpiar logs</button>
+            <button id="exportLogs" class="secondary-btn">Exportar logs</button>
+          </div>
+          <div id="logsContainer" class="logs-container"></div>
+        </div>
+
+        <div id="statsTab" class="tab-content hidden">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>Total de mensajes</h3>
+              <p id="totalMessages" class="stat-value">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Sesiones creadas</h3>
+              <p id="totalSessions" class="stat-value">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Modelo más usado</h3>
+              <p id="popularModel" class="stat-value">-</p>
+            </div>
+            <div class="stat-card">
+              <h3>Tiempo promedio</h3>
+              <p id="avgResponseTime" class="stat-value">-</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="ragTab" class="tab-content hidden">
+          <h3>Configuración RAG (Próximamente)</h3>
+          <p>Aquí podrás cargar tu "rack de libros" para entrenar a Willay con documentos específicos.</p>
+          <div class="rag-config">
+            <label>
+              <input type="checkbox" id="ragEnabled" disabled>
+              Habilitar RAG (Retrieval-Augmented Generation)
+            </label>
+            <div class="file-upload">
+              <button class="secondary-btn" disabled>📁 Cargar documentos PDF</button>
+              <button class="secondary-btn" disabled>📄 Cargar archivos TXT</button>
+              <button class="secondary-btn" disabled>🌐 Indexar URLs</button>
+            </div>
+            <p class="info-text">
+              <strong>Próxima versión:</strong> Podrás cargar libros, PDFs y documentos para que Willay los use como contexto en sus respuestas.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
