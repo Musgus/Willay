@@ -32,10 +32,6 @@
         <h3>Historial</h3>
         <div id="chatHistory" class="chat-history"></div>
       </div>
-
-      <div class="sidebar-footer">
-        <button id="adminBtn" class="admin-btn" title="Panel de administrador">⚙️ Admin</button>
-      </div>
     </aside>
 
     <!-- Main chat area -->
@@ -43,6 +39,7 @@
       <header class="chat-header">
         <button id="showSidebar" class="icon-btn hidden" title="Mostrar sidebar">☰</button>
         <h1>Willay - Asistente Académico IA</h1>
+        <button id="themeToggle" class="icon-btn" title="Cambiar tema">🌙</button>
         <span id="sessionTitle" class="session-title">Nueva sesión</span>
       </header>
 
@@ -82,71 +79,6 @@
       </form>
       <p id="statusText" class="status" role="status" aria-live="polite"></p>
     </main>
-  </div>
-
-  <!-- Modal de administrador -->
-  <div id="adminModal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>⚙️ Panel de Administrador</h2>
-        <button id="closeAdmin" class="close-btn">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="admin-tabs">
-          <button class="tab-btn active" data-tab="logs">📋 Logs</button>
-          <button class="tab-btn" data-tab="stats">📊 Estadísticas</button>
-          <button class="tab-btn" data-tab="rag">📚 RAG Config</button>
-        </div>
-
-        <div id="logsTab" class="tab-content active">
-          <div class="logs-controls">
-            <button id="clearLogs" class="danger-btn">Limpiar logs</button>
-            <button id="exportLogs" class="secondary-btn">Exportar logs</button>
-          </div>
-          <div id="logsContainer" class="logs-container"></div>
-        </div>
-
-        <div id="statsTab" class="tab-content hidden">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <h3>Total de mensajes</h3>
-              <p id="totalMessages" class="stat-value">0</p>
-            </div>
-            <div class="stat-card">
-              <h3>Sesiones creadas</h3>
-              <p id="totalSessions" class="stat-value">0</p>
-            </div>
-            <div class="stat-card">
-              <h3>Modelo más usado</h3>
-              <p id="popularModel" class="stat-value">-</p>
-            </div>
-            <div class="stat-card">
-              <h3>Tiempo promedio</h3>
-              <p id="avgResponseTime" class="stat-value">-</p>
-            </div>
-          </div>
-        </div>
-
-        <div id="ragTab" class="tab-content hidden">
-          <h3>Configuración RAG (Próximamente)</h3>
-          <p>Aquí podrás cargar tu "rack de libros" para entrenar a Willay con documentos específicos.</p>
-          <div class="rag-config">
-            <label>
-              <input type="checkbox" id="ragEnabled" disabled>
-              Habilitar RAG (Retrieval-Augmented Generation)
-            </label>
-            <div class="file-upload">
-              <button class="secondary-btn" disabled>📁 Cargar documentos PDF</button>
-              <button class="secondary-btn" disabled>📄 Cargar archivos TXT</button>
-              <button class="secondary-btn" disabled>🌐 Indexar URLs</button>
-            </div>
-            <p class="info-text">
-              <strong>Próxima versión:</strong> Podrás cargar libros, PDFs y documentos para que Willay los use como contexto en sus respuestas.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <script src="script.js" defer></script>
